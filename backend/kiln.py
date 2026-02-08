@@ -5,8 +5,6 @@ from management import Owner, Manager, Jamaadar, Watchman
 from laborer import BrickMaker
 from utility import update_workforce 
 
-
-
 class KilnAgent(MetaAgent):
     
     def __init__(self, model, workforce, kiln_id, location, kiln_type, kiln_tech="Hand-Made"):
@@ -102,16 +100,18 @@ class KilnAgent(MetaAgent):
             for res, cost in resource_4roller.items():
                 self.resource_costs[res] = cost * self.model.random.uniform(0.98, 1.02)
 
-        
-    
-    def make_bricks(self):
+    def step(self):
+        """
+        Standard Mesa step method.
+        1. Adjust Price (Close out previous cycle based on sales)
+        2. Make Bricks (Start new cycle)
+        """
+        self.adjust_price()
+        self.make_bricks()
 
-        self.revenue = 0
-        self.total_profit = 0
-        self.bricks_made = 0
-        self.bricks_sold = 0
-        self.total_labor = 0
-        self.total_resources = 0
+    def make_bricks(self):
+        # NOTE: Resetting variables moved to adjust_price() to allow accumulation during the step
+        
         #Get bricks
         new_bricks = 0
         if self.kiln_tech == "Hand-Made": 
@@ -155,8 +155,6 @@ class KilnAgent(MetaAgent):
             worker.add_wealth(wage)
             self.total_labor += wage
         
-    
-    
     def adjust_price(self): 
 
         inventory_overhang = self.brick_inventory
@@ -182,11 +180,11 @@ class KilnAgent(MetaAgent):
         #Calculate worker wages --- per brick
         self.total_profit +=  round((self.revenue - self.total_resources- self.total_labor-self.fixed_costs),2)
         self.constituting_agents_by_type[Owner][0].wealth += self.total_profit
-        
 
-
-        
-        
-
-
-
+        # RESET counters for the next step cycle
+        self.revenue = 0
+        self.total_profit = 0
+        self.bricks_made = 0
+        self.bricks_sold = 0
+        self.total_labor = 0
+        self.total_resources = 0
