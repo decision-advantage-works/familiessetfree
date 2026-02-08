@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiln Industry Simulation</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Brick Kiln Industry Simulator</h1>
+            <p>Compare Hand-Made vs. Machine-Made Kiln Economics</p>
+        </header>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="adoption">Machine Adoption Rate (0 to 1)</label>
+                <div class="slider-container">
+                    <input type="range" id="adoption" min="0" max="1" step="0.05" value="0">
+                    <span id="adoption-val">0.00</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="coal">Coal Price (Index 0 to 10)</label>
+                <div class="slider-container">
+                    <input type="range" id="coal" min="0" max="10" step="0.1" value="4.61">
+                    <span id="coal-val">4.61</span>
+                </div>
+            </div>
+            <button id="run-btn">Run Simulation</button>
+        </div>
+
+        <div class="carousel-container">
+            <button class="nav-btn prev-btn" onclick="moveCarousel(-1)">&#10094;</button>
+            
+            <div class="carousel-track-container">
+                <ul class="carousel-track">
+                    <li class="carousel-slide current-slide">
+                        <div class="chart-pair">
+                            <div class="chart-wrapper">
+                                <h3>Price: Hand-Made</h3>
+                                <canvas id="chart-price-hand"></canvas>
+                            </div>
+                            <div class="chart-wrapper">
+                                <h3>Price: Machine-Made</h3>
+                                <canvas id="chart-price-machine"></canvas>
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <li class="carousel-slide">
+                        <div class="chart-pair">
+                            <div class="chart-wrapper">
+                                <h3>Production: Hand-Made</h3>
+                                <canvas id="chart-prod-hand"></canvas>
+                            </div>
+                            <div class="chart-wrapper">
+                                <h3>Production: Machine-Made</h3>
+                                <canvas id="chart-prod-machine"></canvas>
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <li class="carousel-slide">
+                        <div class="chart-pair">
+                            <div class="chart-wrapper">
+                                <h3>Profit: Hand-Made</h3>
+                                <canvas id="chart-profit-hand"></canvas>
+                            </div>
+                            <div class="chart-wrapper">
+                                <h3>Profit: Machine-Made</h3>
+                                <canvas id="chart-profit-machine"></canvas>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <button class="nav-btn next-btn" onclick="moveCarousel(1)">&#10095;</button>
+        </div>
+        
+        <div class="carousel-nav">
+            <button class="dot current-dot" onclick="jumpToSlide(0)"></button>
+            <button class="dot" onclick="jumpToSlide(1)"></button>
+            <button class="dot" onclick="jumpToSlide(2)"></button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
