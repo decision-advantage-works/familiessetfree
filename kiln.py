@@ -69,16 +69,16 @@ class KilnAgent(MetaAgent):
         
         # Non-Labor Resources
         resource_costs = {
-                "coal": 4.81, "electricity": 0.23, "diesel": 0.24,
-                "mud_sand_water": 1.05, "maintenance": 0.00
+                "coal": self.model.coal, "electricity": self.model.electricity, "diesel": self.model.diesel,
+                "mud_sand_water": self.model.mud_sand_water, "maintenance": self.model.maintenance
             }
         resource_2roller = {
-            "coal":4.60, "electricity":0.11, "diesel":1.13, 
-            "mud_sand_water":0.94, "maitenance":0.16
+            "coal": self.model.coal*0.96, "electricity": self.model.electricity*0.05, "diesel": self.model.diesel*4.7,
+            "mud_sand_water": self.model.mud_sand_water*1.1, "maintenance": self.model.maintenance+0.16
         }
         resource_4roller = {
-            "coal":4.81, "electricity":0.05, "diesel":1.13, 
-            "mud_sand_water":1.04, "maitenance":0.08
+            "coal": self.model.coal, "electricity": self.model.electricity*0.02, "diesel": self.model.diesel*4.7,
+            "mud_sand_water": self.model.mud_sand_water, "maintenance": self.model.maintenance+0.08
         }
 
         # Labor Resources
@@ -166,8 +166,8 @@ class KilnAgent(MetaAgent):
         else:
              inventory_ratio = 999
 
-        price_sensitivity = 0.02
-        min_price = 11.0 
+        price_sensitivity = 0.05
+        min_price = 5.0 
         max_price = 25.0
 
         if inventory_ratio < 0.1: # Less than 10% inventory left (High Demand)

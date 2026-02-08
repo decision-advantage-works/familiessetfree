@@ -187,3 +187,8 @@ cython_debug/
 *.png
 *.pkl 
 *.tiff
+*.csv
+*.pdf
+*.prof
+*.json
+

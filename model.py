@@ -39,11 +39,19 @@ def calc_production(model, age, gender):
 
 class KilnModel(mesa.Model):
 
-    def __init__(self, seed=42,tech=False ): 
+    def __init__(self, seed=42,tech=False, kilns_to_tech = None, coal=4.61,
+                 electricity=0.23, diesel=0.24, mud_sand_water=1.05, maintenance=0.00,machine_bricks=0.0): 
+        
         super().__init__(seed=seed)
         self.displaced = {}
         self.debug = []
         self.teched_up = 0
+        self.coal= coal
+        self.electricity=electricity
+        self.diesel=diesel
+        self.mud_sand_water=mud_sand_water
+        self.maintenance=maintenance
+        self.machine_bricks=machine_bricks
         
 
         #create population
@@ -53,11 +61,15 @@ class KilnModel(mesa.Model):
        
         
         teched_kiln_ids = set()
-        if tech:
+        if tech==True and kilns_to_tech == None :
             all_kiln_ids = list(synpop.keys())
             all_kiln_ids = [id[0] for id in all_kiln_ids ]
             teched_kiln_ids = set(self.random.sample(all_kiln_ids, 500))
             
+            print(f"Selected {len(teched_kiln_ids)} kilns for tech upgrade.")
+        elif tech==True and kilns_to_tech != None:
+            teched_kiln_ids = set(kilns_to_tech)
+
             print(f"Selected {len(teched_kiln_ids)} kilns for tech upgrade.")
         
         
@@ -76,8 +88,8 @@ class KilnModel(mesa.Model):
                 "Transporter" :Transporter,
                 "Loader" :Loader, 
                 "Extractor": Extractor,
-                 "BrickBaker": BrickBaker,
-                 "CoalLoader": CoalLoader,
+                "BrickBaker": BrickBaker,
+                "CoalLoader": CoalLoader,
                 "Insulator": Insulator
             }
 
@@ -119,14 +131,14 @@ class KilnModel(mesa.Model):
             kiln_workforce.append(Manager(self, kiln=kiln_id, location=kiln_loc)) #aka Munshi
             
             # Determine Kiln Tech 
-            if kiln_id in teched_kiln_ids:
+            if kiln_id in self.random.sample(list(teched_kiln_ids), 250):
                 kiln_tech = self.random.choice(["Two-Roller", "Four-Roller"])
                 self.teched_up += 1
             else: 
                 kiln_tech = "Hand-Made"
             # Create kiln as meta agent
-            KilnAgent(self, kiln_workforce, kiln_id, kiln_loc, kiln_type, kiln_tech)
-        #Make kiln referfence
+            KilnAgent(self, kiln_workforce, kiln_id, kiln_loc, kiln_type, kiln_tech,)
+        #Make kiln refefence
         kiln_ref = {}
         for kiln in self.agents_by_type[KilnAgent]: 
             kiln_ref[kiln.kiln_id] = kiln
@@ -137,7 +149,11 @@ class KilnModel(mesa.Model):
             kilns  = []
             for buy_kiln in buyer["closest_kilns"]:
                 kilns.append(kiln_ref[buy_kiln])
-            BuyerAgent(self, buyer["id"], buyer["location"], kilns)
+            if self.random.uniform(0,1)<self.machine_bricks: 
+                machine_bricks=True
+            BuyerAgent(self, buyer["id"], buyer["location"], kilns,machine_bricks=True)
+
+        self.all_kilns = list(self.agents_by_type[KilnAgent])
 
         self.datacollector = DataCollector(model_reporters={"Revenue":self.get_revenue, "Profit": self.get_profit, "Bricks": self.get_production},
                                            agenttype_reporters={KilnAgent:{"Kiln":"kiln_id", "Revenue": "revenue","Profit": "total_profit", "Bricks": "bricks_made",
