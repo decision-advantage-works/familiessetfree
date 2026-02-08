@@ -5,9 +5,14 @@ let pollInterval = null;
 // --- UI Logic ---
 const adoptionSlider = document.getElementById('adoption');
 const coalSlider = document.getElementById('coal');
+const machineDemandSlider = document.getElementById('machine_demand');
+
 const adoptionVal = document.getElementById('adoption-val');
 const coalVal = document.getElementById('coal-val');
-const statusDisplay = document.getElementById('status-display');
+const machineDemandVal = document.getElementById('machine_demand-val');
+
+const statusText = document.getElementById('status-text');
+const dayCounter = document.getElementById('day-counter');
 
 const initBtn = document.getElementById('init-btn');
 const playBtn = document.getElementById('play-btn');
@@ -16,6 +21,7 @@ const resetBtn = document.getElementById('reset-btn');
 
 adoptionSlider.oninput = () => adoptionVal.innerText = parseFloat(adoptionSlider.value).toFixed(2);
 coalSlider.oninput = () => coalVal.innerText = parseFloat(coalSlider.value).toFixed(2);
+machineDemandSlider.oninput = () => machineDemandVal.innerText = parseFloat(machineDemandSlider.value).toFixed(2);
 
 // --- Initialization ---
 initBtn.onclick = async () => {
@@ -30,14 +36,15 @@ initBtn.onclick = async () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 adoption: parseFloat(adoptionSlider.value),
-                coal_price: parseFloat(coalSlider.value)
+                coal_price: parseFloat(coalSlider.value),
+                machine_demand: parseFloat(machineDemandSlider.value)
             })
         });
         
         // Start polling for status
         pollStatus();
     } catch (e) {
-        statusDisplay.innerText = "Error: " + e;
+        statusText.innerText = "Error: " + e;
         initBtn.disabled = false;
     }
 };
@@ -47,15 +54,16 @@ function pollStatus() {
         const res = await fetch('/status');
         const data = await res.json();
         
-        statusDisplay.innerText = "Status: " + data.status;
+        statusText.innerText = data.status;
+        dayCounter.innerText = "Day: " + data.step;
         
         if (data.ready) {
             clearInterval(check);
             playBtn.disabled = false;
             resetBtn.disabled = false;
-            initBtn.disabled = true; // Can't re-init without reset
+            initBtn.disabled = true; 
         }
-    }, 1000);
+    }, 500); // Faster polling for initialization feedback
 }
 
 // --- Play / Pause / Reset ---
@@ -76,13 +84,12 @@ resetBtn.onclick = async () => {
     isPlaying = false;
     await fetch('/reset', { method: 'POST' });
     
-    statusDisplay.innerText = "Status: Reset complete";
+    statusText.innerText = "Reset complete";
+    dayCounter.innerText = "Day: 0";
     initBtn.disabled = false;
     playBtn.disabled = true;
     pauseBtn.disabled = true;
     resetBtn.disabled = true;
-    
-    // Clear charts (optional, or just leave last state)
 };
 
 async function runStepLoop() {
@@ -98,10 +105,12 @@ async function runStepLoop() {
             return;
         }
         
+        // Update charts and Day counter
         updateCharts(data);
+        dayCounter.innerText = "Day: " + data.step;
         
         if (isPlaying) {
-            setTimeout(runStepLoop, 100); // Small delay to prevent freezing UI
+            setTimeout(runStepLoop, 50); // Fast loop
         }
     } catch (e) {
         console.error("Step failed", e);
@@ -109,8 +118,7 @@ async function runStepLoop() {
     }
 }
 
-// --- Carousel & Charts Logic (Same as before) ---
-// ... (Include previous carousel and chart logic here) ...
+// --- Carousel & Charts Logic ---
 const track = document.querySelector('.carousel-track');
 const slides = Array.from(track.children);
 const dots = Array.from(document.querySelectorAll('.dot'));
@@ -140,17 +148,61 @@ window.onresize = updateSlidePosition;
 
 let charts = {};
 function initCharts() {
-    const chartIds = ['chart-price-hand', 'chart-price-machine', 'chart-prod-hand', 'chart-prod-machine', 'chart-profit-hand', 'chart-profit-machine'];
-    chartIds.forEach(id => {
-        const ctx = document.getElementById(id).getContext('2d');
-        const isMachine = id.includes('machine');
-        charts[id] = new Chart(ctx, {
+    const chartIds = [
+        {id: 'chart-price-hand', xLabel: 'Price (PKR)', yLabel: 'Kilns'},
+        {id: 'chart-price-machine', xLabel: 'Price (PKR)', yLabel: 'Kilns'},
+        {id: 'chart-prod-hand', xLabel: 'Brick Output', yLabel: 'Kilns'},
+        {id: 'chart-prod-machine', xLabel: 'Brick Output', yLabel: 'Kilns'},
+        {id: 'chart-profit-hand', xLabel: 'Profit (PKR)', yLabel: 'Kilns'},
+        {id: 'chart-profit-machine', xLabel: 'Profit (PKR)', yLabel: 'Kilns'}
+    ];
+    
+    chartIds.forEach(conf => {
+        const ctx = document.getElementById(conf.id).getContext('2d');
+        const isMachine = conf.id.includes('machine');
+        
+        charts[conf.id] = new Chart(ctx, {
             type: 'bar',
-            data: { labels: [], datasets: [{ label: 'Kiln Count', data: [], backgroundColor: isMachine ? 'rgba(54, 162, 235, 0.6)' : 'rgba(255, 99, 132, 0.6)' }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Waiting...' } }, scales: { y: { beginAtZero: true } } }
+            data: { 
+                labels: [], 
+                datasets: [{ 
+                    label: 'Count', 
+                    data: [], 
+                    backgroundColor: isMachine ? 'rgba(54, 162, 235, 0.6)' : 'rgba(255, 99, 132, 0.6)' 
+                }] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                layout: {
+                    padding: {
+                        bottom: 20, // Fix for labels being cut off
+                        left: 10,
+                        right: 10
+                    }
+                },
+                plugins: { 
+                    title: { display: true, text: 'Waiting for data...' },
+                    legend: { display: false }
+                }, 
+                scales: { 
+                    y: { 
+                        beginAtZero: true,
+                        title: { display: true, text: conf.yLabel }
+                    },
+                    x: {
+                        title: { display: true, text: conf.xLabel },
+                        ticks: {
+                            maxRotation: 0, // Keep labels horizontal if possible
+                            autoSkip: true
+                        }
+                    }
+                } 
+            }
         });
     });
 }
+
 function updateCharts(data) {
     updateSingleChart('chart-price-hand', data.price.hand);
     updateSingleChart('chart-price-machine', data.price.machine);
@@ -159,9 +211,11 @@ function updateCharts(data) {
     updateSingleChart('chart-profit-hand', data.profit.hand);
     updateSingleChart('chart-profit-machine', data.profit.machine);
 }
+
 function updateSingleChart(id, histData) {
     const chart = charts[id];
     if (!histData || !histData.data) return;
+    
     chart.data.labels = histData.labels;
     chart.data.datasets[0].data = histData.data;
     chart.options.plugins.title.text = `Avg: ${histData.average.toFixed(2)}`;

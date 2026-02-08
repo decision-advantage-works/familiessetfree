@@ -1,3 +1,4 @@
+import numpy as np 
 import pandas as pd
 import pickle
 from shapely.geometry import box
@@ -47,32 +48,36 @@ class KilnModel(mesa.Model):
         self.mud_sand_water = mud_sand_water
         self.maintenance = maintenance
         self.machine_bricks = machine_bricks
+        self.step_count = 0  # Track simulation day
         
         if progress_callback:
             progress_callback("Loading population data...")
 
         #create population
-        with open("synpop.pkl", 'rb') as file: 
-            synpop = pickle.load(file) 
+        try:
+            with open("synpop.pkl", 'rb') as file: 
+                synpop = pickle.load(file) 
+        except FileNotFoundError:
+            # Fallback for testing if file missing
+            synpop = {}
+            print("Warning: synpop.pkl not found.")
         
         teched_kiln_ids = set()
         if tech==True and kilns_to_tech == None :
             all_kiln_ids = list(synpop.keys())
-            all_kiln_ids = [id[0] for id in all_kiln_ids ]
-            teched_kiln_ids = set(self.random.sample(all_kiln_ids, 500))
+            if all_kiln_ids:
+                all_kiln_ids = [id[0] for id in all_kiln_ids ]
+                teched_kiln_ids = set(self.random.sample(all_kiln_ids, min(len(all_kiln_ids), 500)))
         elif tech==True and kilns_to_tech != None:
             teched_kiln_ids = set(kilns_to_tech)
         
-        if progress_callback:
-            progress_callback(f"Building {len(synpop)} kilns and agents...")
-
         count = 0
         total_kilns = len(synpop)
         
         for kiln_data, workers in synpop.items(): 
             count += 1
-            if progress_callback and count % 50 == 0:
-                progress_callback(f"Building agents: {count}/{total_kilns} kilns created...")
+            if progress_callback and count % 10 == 0:
+                progress_callback(f"Initializing Kilns: {count}/{total_kilns}")
 
             kiln_id = kiln_data[0]
             kiln_loc = kiln_data[1]
@@ -138,18 +143,35 @@ class KilnModel(mesa.Model):
             kiln_ref[kiln.kiln_id] = kiln
 
         if progress_callback:
-            progress_callback("Initializing buyers...")
+            progress_callback("Loading Buyers...")
 
         #Create buyers
-        with open("buyers.pkl", 'rb') as file: 
-            buyers = pickle.load(file)
+        try:
+            with open("buyers.pkl", 'rb') as file: 
+                buyers = pickle.load(file)
+        except FileNotFoundError:
+            buyers = []
+            print("Warning: buyers.pkl not found.")
+
+        buyer_count = 0
+        total_buyers = len(buyers)
+
         for buyer in buyers: 
+            buyer_count += 1
+            if progress_callback and buyer_count % 50 == 0:
+                progress_callback(f"Initializing Buyers: {buyer_count}/{total_buyers}")
+
             kilns  = []
             for buy_kiln in buyer["closest_kilns"]:
-                kilns.append(kiln_ref[buy_kiln])
-            if self.random.uniform(0,1)<self.machine_bricks: 
-                machine_bricks=True
-            BuyerAgent(self, buyer["id"], buyer["location"], kilns,machine_bricks=True)
+                if buy_kiln in kiln_ref:
+                    kilns.append(kiln_ref[buy_kiln])
+            
+            # Pass machine_bricks preference (0.0 - 1.0 probability)
+            wants_machine = False
+            if self.random.uniform(0,1) < self.machine_bricks: 
+                wants_machine = True
+            
+            BuyerAgent(self, buyer["id"], buyer["location"], kilns, machine_bricks=wants_machine)
 
         self.all_kilns = list(self.agents_by_type[KilnAgent])
 
@@ -157,6 +179,9 @@ class KilnModel(mesa.Model):
                                            agenttype_reporters={KilnAgent:{"Kiln":"kiln_id", "Revenue": "revenue","Profit": "total_profit", "Bricks": "bricks_made",
                                                                            "Location": "location", "Tech":"kiln_tech", "Labor": "total_labor", "Resources": "total_resources",
                                                                             "Workers":"num_workers", "Sale Price":"sale_price", "Inventory": "brick_inventory" }})
+        
+        if progress_callback:
+            progress_callback("Initialization Complete!")
 
     def get_profit(self): 
         profit = 0
@@ -182,8 +207,14 @@ class KilnModel(mesa.Model):
         Collects all KilnAgents and BuyerAgents, shuffles them together,
         and executes their step() method one by one.
         """
+        self.step_count += 1
+        
         # Create a combined list of agents
-        mixed_agents = list(self.agents_by_type[KilnAgent]) + list(self.agents_by_type[BuyerAgent])
+        # Note: Depending on Mesa version, agents_by_type might return a dict or set
+        # We ensure list conversion for shuffling
+        kilns = list(self.agents_by_type[KilnAgent])
+        buyers = list(self.agents_by_type[BuyerAgent])
+        mixed_agents = kilns + buyers
         
         # Shuffle them organically
         self.random.shuffle(mixed_agents)
