@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "familiessetfree"
+version = "0.1.0"
+description = "Brick Kiln Agent-Based Modeling Simulation"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Decision Advantage Works" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Framework :: Flask",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "flask",
+    "mesa>=3.4.0",
+    "numpy",
+    "pandas",
+    "shapely",
+]
+
+[project.optional-dependencies]
+dev = [
+    "jupyterlab",
+    "matplotlib",
+    "geopandas",     
+    "pytest",
+    "ruff",
+]
+
+[tool.setuptools]
+packages = ["backend"]

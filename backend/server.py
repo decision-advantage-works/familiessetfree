@@ -6,7 +6,7 @@ import numpy as np
 from flask import Flask, jsonify, request, render_template
 from model import KilnModel
 from kiln import KilnAgent
-from buyer import BuyerAgent # Added import
+from buyer import BuyerAgent
 
 app = Flask(__name__, 
             template_folder='../frontend', 
@@ -108,7 +108,6 @@ def init_simulation():
 
 @app.route('/status', methods=['GET'])
 def get_status():
-    # Calculate agent count if model is ready
     agent_count = 0
     if simulation_state["model"]:
         model = simulation_state["model"]
@@ -120,7 +119,7 @@ def get_status():
         "status": simulation_state["status"],
         "ready": simulation_state["is_ready"],
         "step": simulation_state["current_step"],
-        "agent_count": agent_count # Return count
+        "agent_count": agent_count
     })
 
 @app.route('/step', methods=['POST'])
@@ -130,9 +129,7 @@ def step_simulation():
     
     model = simulation_state["model"]
     
-    # Execute steps (approximate one day or meaningful chunk)
-    # If 1 step = 1 day, just run 1 step. If steps are smaller, run more.
-    # Assuming user wants 1 "Day" per click or loop iteration:
+    # Execute steps
     model.step()
     simulation_state["current_step"] = model.step_count
     
@@ -152,14 +149,10 @@ def step_simulation():
             hand_prod.append(kiln.bricks_made)
             hand_profit.append(kiln.total_profit)
     
-    # Define Fixed Bins for Production (Constant X-Axis)
-    # Hand made: typically 0 - 5000 bricks? 
-    # Machine: typically 500k - 1M?
-    # We use np.linspace to create consistent bins
     hand_prod_bins = np.linspace(0, 10000, 15) 
     machine_prod_bins = np.linspace(0, 1500000, 15)
 
-    # Calculate agent count for status
+    # Calculate agent counts
     kiln_count = len(model.agents_by_type[KilnAgent])
     buyer_count = len(model.agents_by_type[BuyerAgent])
     total_active_agents = kiln_count + buyer_count
@@ -178,7 +171,9 @@ def step_simulation():
             "machine": compute_histogram(machine_profit) 
         },
         "step": model.step_count,
-        "agent_count": total_active_agents # Return count
+        # Return how many agents actually stepped this day
+        "agents_stepped": model.agents_stepped,
+        "total_agents": total_active_agents
     })
 
 @app.route('/reset', methods=['POST'])

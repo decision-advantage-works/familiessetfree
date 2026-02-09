@@ -49,6 +49,7 @@ class KilnModel(mesa.Model):
         self.maintenance = maintenance
         self.machine_bricks = machine_bricks
         self.step_count = 0  # Track simulation day
+        self.agents_stepped = 0 # Track agents processed in current step
         
         if progress_callback:
             progress_callback("Loading population data...")
@@ -77,6 +78,7 @@ class KilnModel(mesa.Model):
         for kiln_data, workers in synpop.items(): 
             count += 1
             if progress_callback and count % 10 == 0:
+                # Show Kiln progress
                 progress_callback(f"Initializing Kilns: {count}/{total_kilns}")
 
             kiln_id = kiln_data[0]
@@ -143,7 +145,7 @@ class KilnModel(mesa.Model):
             kiln_ref[kiln.kiln_id] = kiln
 
         if progress_callback:
-            progress_callback("Loading Buyers...")
+            progress_callback(f"Kilns Loaded ({total_kilns}). Loading Buyers...")
 
         #Create buyers
         try:
@@ -158,9 +160,9 @@ class KilnModel(mesa.Model):
 
         for buyer in buyers: 
             buyer_count += 1
-            # UPDATED: More frequent status updates for buyers (every 10 instead of 50)
             if progress_callback and buyer_count % 10 == 0:
-                progress_callback(f"Initializing Buyers: {buyer_count}/{total_buyers}")
+                # UPDATED: Show both Kiln completion and Buyer progress
+                progress_callback(f"Initializing... Kilns: {total_kilns} (Done) | Buyers: {buyer_count}/{total_buyers}")
 
             kilns  = []
             for buy_kiln in buyer["closest_kilns"]:
@@ -209,10 +211,9 @@ class KilnModel(mesa.Model):
         and executes their step() method one by one.
         """
         self.step_count += 1
+        self.agents_stepped = 0 # Reset counter for the new day
         
         # Create a combined list of agents
-        # Note: Depending on Mesa version, agents_by_type might return a dict or set
-        # We ensure list conversion for shuffling
         kilns = list(self.agents_by_type[KilnAgent])
         buyers = list(self.agents_by_type[BuyerAgent])
         mixed_agents = kilns + buyers
@@ -223,5 +224,6 @@ class KilnModel(mesa.Model):
         # Execute steps
         for agent in mixed_agents:
             agent.step()
+            self.agents_stepped += 1 # Increment counter
 
         self.datacollector.collect(self)
