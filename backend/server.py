@@ -6,6 +6,7 @@ import numpy as np
 from flask import Flask, jsonify, request, render_template
 from model import KilnModel
 from kiln import KilnAgent
+from buyer import BuyerAgent # Added import
 
 app = Flask(__name__, 
             template_folder='../frontend', 
@@ -107,10 +108,19 @@ def init_simulation():
 
 @app.route('/status', methods=['GET'])
 def get_status():
+    # Calculate agent count if model is ready
+    agent_count = 0
+    if simulation_state["model"]:
+        model = simulation_state["model"]
+        kilns = len(model.agents_by_type[KilnAgent])
+        buyers = len(model.agents_by_type[BuyerAgent])
+        agent_count = kilns + buyers
+
     return jsonify({
         "status": simulation_state["status"],
         "ready": simulation_state["is_ready"],
-        "step": simulation_state["current_step"]
+        "step": simulation_state["current_step"],
+        "agent_count": agent_count # Return count
     })
 
 @app.route('/step', methods=['POST'])
@@ -149,6 +159,11 @@ def step_simulation():
     hand_prod_bins = np.linspace(0, 10000, 15) 
     machine_prod_bins = np.linspace(0, 1500000, 15)
 
+    # Calculate agent count for status
+    kiln_count = len(model.agents_by_type[KilnAgent])
+    buyer_count = len(model.agents_by_type[BuyerAgent])
+    total_active_agents = kiln_count + buyer_count
+
     return jsonify({
         "price": { 
             "hand": compute_histogram(hand_prices), 
@@ -162,7 +177,8 @@ def step_simulation():
             "hand": compute_histogram(hand_profit), 
             "machine": compute_histogram(machine_profit) 
         },
-        "step": model.step_count
+        "step": model.step_count,
+        "agent_count": total_active_agents # Return count
     })
 
 @app.route('/reset', methods=['POST'])

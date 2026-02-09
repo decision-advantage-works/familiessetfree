@@ -158,7 +158,8 @@ class KilnModel(mesa.Model):
 
         for buyer in buyers: 
             buyer_count += 1
-            if progress_callback and buyer_count % 50 == 0:
+            # UPDATED: More frequent status updates for buyers (every 10 instead of 50)
+            if progress_callback and buyer_count % 10 == 0:
                 progress_callback(f"Initializing Buyers: {buyer_count}/{total_buyers}")
 
             kilns  = []

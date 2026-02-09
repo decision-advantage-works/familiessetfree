@@ -55,7 +55,10 @@ function pollStatus() {
         const data = await res.json();
         
         statusText.innerText = data.status;
-        dayCounter.innerText = "Day: " + data.step;
+        
+        // UPDATED: Show Day first, then Agent count if available
+        let agentDisplay = data.agent_count ? data.agent_count : 0;
+        dayCounter.innerText = "Day: " + data.step + " | Agents: " + agentDisplay + "/" + agentDisplay;
         
         if (data.ready) {
             clearInterval(check);
@@ -85,7 +88,7 @@ resetBtn.onclick = async () => {
     await fetch('/reset', { method: 'POST' });
     
     statusText.innerText = "Reset complete";
-    dayCounter.innerText = "Day: 0";
+    dayCounter.innerText = "Day: 0 | Agents: 0/0";
     initBtn.disabled = false;
     playBtn.disabled = true;
     pauseBtn.disabled = true;
@@ -107,7 +110,10 @@ async function runStepLoop() {
         
         // Update charts and Day counter
         updateCharts(data);
-        dayCounter.innerText = "Day: " + data.step;
+        
+        // UPDATED: Show Day first, then Agent count
+        let agentDisplay = data.agent_count ? data.agent_count : 0;
+        dayCounter.innerText = "Day: " + data.step + " | Agents: " + agentDisplay + "/" + agentDisplay;
         
         if (isPlaying) {
             setTimeout(runStepLoop, 50); // Fast loop

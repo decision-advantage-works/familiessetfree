@@ -110,11 +110,12 @@ button#run-btn:disabled {
 .chart-wrapper {
     background: white;
     width: 45%;
-    height: 450px;
-    padding: 15px;
+    height: 400px; /* Fixed height */
+    padding: 10px 20px 40px 20px; /* Added bottom padding for X-axis labels */
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     text-align: center;
+    box-sizing: border_box; /* Ensure padding doesn't expand width */
 }
 
 /* Navigation Buttons */
