@@ -106,8 +106,18 @@ class KilnAgent(MetaAgent):
         1. Adjust Price (Close out previous cycle based on sales)
         2. Make Bricks (Start new cycle)
         """
+        
+        self.bricks_made = 0
+        self.bricks_sold = 0
         self.adjust_price()
         self.make_bricks()
+
+        # RESET counters for the next step cycle
+        #self.revenue = 0
+        #self.total_profit = 0
+        self.total_labor = 0
+        self.total_resources = 0
+
 
     def make_bricks(self):
         # NOTE: Resetting variables moved to adjust_price() to allow accumulation during the step
@@ -180,11 +190,3 @@ class KilnAgent(MetaAgent):
         #Calculate worker wages --- per brick
         self.total_profit +=  round((self.revenue - self.total_resources- self.total_labor-self.fixed_costs),2)
         self.constituting_agents_by_type[Owner][0].wealth += self.total_profit
-
-        # RESET counters for the next step cycle
-        self.revenue = 0
-        self.total_profit = 0
-        self.bricks_made = 0
-        self.bricks_sold = 0
-        self.total_labor = 0
-        self.total_resources = 0

@@ -110,10 +110,9 @@ async function runStepLoop() {
         
         // Update charts and Day counter
         updateCharts(data);
+        console.log(data.profit)
         
-        // UPDATED: Show Day first, then Agent count
-        let agentDisplay = data.agent_count ? data.agent_count : 0;
-        dayCounter.innerText = "Day: " + data.step + " | Agents: " + agentDisplay + "/" + agentDisplay;
+        dayCounter.innerText = "Day: " + data.step;
         
         if (isPlaying) {
             setTimeout(runStepLoop, 50); // Fast loop
