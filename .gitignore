@@ -184,8 +184,7 @@ cython_debug/
 #Ignore viaul studio code files
 .vscode/
 output/*.html
-*.png
-*.pkl 
+*.png 
 *.tiff
 *.csv
 *.pdf
