@@ -18,6 +18,9 @@ from buyer import BuyerAgent
 from kiln import KilnAgent
 from management import Owner, Jamaadar, Watchman, Manager
 
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 def calc_production(model, age, gender):
     random_noise = model.random.uniform(0.95, 1.05)
     if age <= 14: 
@@ -56,7 +59,7 @@ class KilnModel(mesa.Model):
 
         #create population
         try:
-            with open("synpop.pkl", 'rb') as file: 
+            with open(os.path.join(BASE_DIR, "synpop.pkl"), 'rb') as file:
                 synpop = pickle.load(file) 
         except FileNotFoundError:
             # Fallback for testing if file missing
@@ -149,7 +152,7 @@ class KilnModel(mesa.Model):
 
         #Create buyers
         try:
-            with open("buyers.pkl", 'rb') as file: 
+            with open(os.path.join(BASE_DIR, "buyers.pkl"), 'rb') as file:
                 buyers = pickle.load(file)
         except FileNotFoundError:
             buyers = []

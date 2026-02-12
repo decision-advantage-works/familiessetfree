@@ -8,6 +8,9 @@ from model import KilnModel
 from kiln import KilnAgent
 from buyer import BuyerAgent
 
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 app = Flask(__name__, 
             template_folder='../frontend', 
             static_folder='../frontend/static')
@@ -53,7 +56,8 @@ def init_worker(adoption, coal_price, machine_demand):
         print(msg) 
 
     try:
-        with open("synpop.pkl", 'rb') as file: 
+        synpop_path = os.path.join(BASE_DIR, "synpop.pkl")
+        with open(synpop_path, 'rb') as file:
             synpop = pickle.load(file)
         
         all_ids = [k[0] for k in synpop.keys()]

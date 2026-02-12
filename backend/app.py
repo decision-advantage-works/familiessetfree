@@ -2,11 +2,11 @@ import json
 from model import KilnModel
 from kiln import KilnAgent
 
-with open('zz_punjab.json', 'r') as f:
-    kilns_to_tech = json.load(f)
+#with open('zz_punjab.json', 'r') as f:
+#    kilns_to_tech = json.load(f)
 
-print(f"Len of ZZ punjab kilns {len(kilns_to_tech)}")
-model = KilnModel(tech = True, kilns_to_tech=kilns_to_tech, coal=4.61,machine_bricks=0.5)
+#print(f"Len of ZZ punjab kilns {len(kilns_to_tech)}")
+model = KilnModel(tech = True, kilns_to_tech=[], coal=4.61,machine_bricks=0.5)
 print("Number of Agents: ",  len(model.agents))
 print("Techup Kilns: ", model.teched_up)
 
