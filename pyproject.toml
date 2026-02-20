@@ -19,7 +19,7 @@ classifiers = [
 dependencies = [
     "flask",
     "gunicorn",
-    "mesa>=3.4.0",
+    "mesa[rec]",
     "numpy",
     "pandas",
     "shapely",
