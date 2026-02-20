@@ -52,6 +52,11 @@ initBtn.onclick = async () => {
 function pollStatus() {
     const check = setInterval(async () => {
         const res = await fetch('/status');
+        if (!res.ok) {
+            console.error("Server error:", res.status);
+            statusText.innerText = "Server Error (Check Render Logs)";
+            return; // Stop trying to parse JSON
+        }
         const data = await res.json();
         
         statusText.innerText = data.status;
