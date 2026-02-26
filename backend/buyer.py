@@ -1,5 +1,4 @@
 import mesa
-import numpy as np
 from kiln import KilnAgent 
 
 class BuyerAgent(mesa.Agent):
@@ -7,12 +6,12 @@ class BuyerAgent(mesa.Agent):
         super().__init__(model)
         self.buyer_id = buyer_id
         self.location = location
-        self.demand = int(np.random.lognormal(6.91, 1))  
+        self.demand = int(self.model.random.lognormvariate(12, 1))
         self.kilns = kilns 
         self.machine_bricks=machine_bricks
         
         # Budget
-        self.max_willingness_to_pay = np.random.uniform(20.0, 25.0) 
+        self.max_willingness_to_pay = self.model.random.uniform(20.0, 25.0)
         
         self.bricks_bought = 0
 
@@ -24,7 +23,9 @@ class BuyerAgent(mesa.Agent):
         
         # 1. Retrieve ALL kilns from the model logic
         # 2. Select a Random Sample 
-        sample_size = 100
+        sample_size = min(100, len(self.model.all_kilns))
+        if sample_size == 0:
+            return
         shopping_list = self.random.sample(self.model.all_kilns, sample_size)
 
         # 3. Sort by Price (Cheapest First)

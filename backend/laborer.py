@@ -27,7 +27,7 @@ class BrickMaker(Laborer):
 
     def step(self):
         self.bricks_made = 0
-        random_noise = np.random.uniform(0.95, 1.05)
+        random_noise = self.model.random.uniform(0.95, 1.05)
         self.bricks_made += int(random_noise * self.production)
 
 

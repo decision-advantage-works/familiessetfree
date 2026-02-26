@@ -37,11 +37,11 @@ def calc_production(model, age, gender):
 
 class KilnModel(mesa.Model):
 
-    def __init__(self, seed=42, tech=False, kilns_to_tech=None, coal=4.61,
+    def __init__(self, rng=42, tech=False, kilns_to_tech=None, coal=4.61,
                  electricity=0.23, diesel=0.24, mud_sand_water=1.05, maintenance=0.00, 
                  machine_bricks=0.0, progress_callback=None): 
         
-        super().__init__(seed=seed)
+        super().__init__(rng=rng)
         self.displaced = {}
         self.debug = []
         self.teched_up = 0
@@ -77,6 +77,16 @@ class KilnModel(mesa.Model):
         
         count = 0
         total_kilns = len(synpop)
+        job_map = {
+            "BrickMaker": BrickMaker,
+            "Dryer": Dryer,
+            "Transporter": Transporter,
+            "Loader": Loader,
+            "Extractor": Extractor,
+            "BrickBaker": BrickBaker,
+            "CoalLoader": CoalLoader,
+            "Insulator": Insulator,
+        }
         
         for kiln_data, workers in synpop.items(): 
             count += 1
@@ -88,43 +98,33 @@ class KilnModel(mesa.Model):
             kiln_loc = kiln_data[1]
             kiln_type = kiln_data[2]
 
-            job_map = {
-                "BrickMaker": BrickMaker,
-                "Dryer": Dryer, 
-                "Transporter" :Transporter,
-                "Loader" :Loader, 
-                "Extractor": Extractor,
-                "BrickBaker": BrickBaker,
-                "CoalLoader": CoalLoader,
-                "Insulator": Insulator
-            }
-
             # create workers
             kiln_workforce = []
-            for idx in range(len(workers)):
-                w_data = workers[idx][1] 
+            for family_id, w_data in workers:
                 AgentClass = job_map.get(w_data["job"])
+                if AgentClass is None:
+                    continue
                 
                 if AgentClass != BrickMaker:
                     laboragent = AgentClass(
                         self, 
                         kiln=kiln_id,
                         location=kiln_loc,
-                        family=workers[idx][0],
+                        family=family_id,
                         age=w_data["age"], 
                         gender=w_data["gender"]
-                    )
+                    ) # type: ignore
                     kiln_workforce.append(laboragent)
                 else: 
                     laboragent = AgentClass(
                         self, 
                         kiln=kiln_id,
                         location=kiln_loc,
-                        family=workers[idx][0],
+                        family=family_id,
                         age=w_data["age"], 
                         gender=w_data["gender"],
                         production = int(calc_production(self,w_data["age"], w_data["gender"]))
-                    )
+                    ) # type: ignore
                     kiln_workforce.append(laboragent)
 
             # Add Management
@@ -143,9 +143,7 @@ class KilnModel(mesa.Model):
             KilnAgent(self, kiln_workforce, kiln_id, kiln_loc, kiln_type, kiln_tech,)
         
         #Make kiln refefence
-        kiln_ref = {}
-        for kiln in self.agents_by_type[KilnAgent]: 
-            kiln_ref[kiln.kiln_id] = kiln
+        kiln_ref = {kiln.kiln_id: kiln for kiln in self.agents_by_type[KilnAgent]}
 
         if progress_callback:
             progress_callback(f"Kilns Loaded ({total_kilns}). Loading Buyers...")
@@ -180,6 +178,8 @@ class KilnModel(mesa.Model):
             BuyerAgent(self, buyer["id"], buyer["location"], kilns, machine_bricks=wants_machine)
 
         self.all_kilns = list(self.agents_by_type[KilnAgent])
+        self.all_buyers = list(self.agents_by_type[BuyerAgent])
+        self.step_agents = self.all_kilns + self.all_buyers
 
         self.datacollector = DataCollector(model_reporters={"Revenue":self.get_revenue, "Profit": self.get_profit, "Bricks": self.get_production},
                                            agenttype_reporters={KilnAgent:{"Kiln":"kiln_id", "Revenue": "revenue","Profit": "total_profit", "Bricks": "bricks_made",
@@ -191,19 +191,19 @@ class KilnModel(mesa.Model):
 
     def get_profit(self): 
         profit = 0
-        for kiln in self.agents_by_type[KilnAgent]:
+        for kiln in self.all_kilns:
             profit += kiln.total_profit
         return profit
     
     def get_production(self): 
         bricks = 0
-        for kiln in self.agents_by_type[KilnAgent]:
+        for kiln in self.all_kilns:
             bricks += kiln.brick_inventory
         return bricks
     
     def get_revenue(self): 
         revenue = 0
-        for kiln in self.agents_by_type[KilnAgent]:
+        for kiln in self.all_kilns:
             revenue += kiln.revenue
         return revenue
     
@@ -216,16 +216,11 @@ class KilnModel(mesa.Model):
         self.step_count += 1
         self.agents_stepped = 0 # Reset counter for the new day
         
-        # Create a combined list of agents
-        kilns = list(self.agents_by_type[KilnAgent])
-        buyers = list(self.agents_by_type[BuyerAgent])
-        mixed_agents = kilns + buyers
-        
-        # Shuffle them organically
-        self.random.shuffle(mixed_agents)
+        # Shuffle pre-cached step agents in place
+        self.random.shuffle(self.step_agents)
         
         # Execute steps
-        for agent in mixed_agents:
+        for agent in self.step_agents:
             agent.step()
             self.agents_stepped += 1 # Increment counter
 

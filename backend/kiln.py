@@ -100,6 +100,19 @@ class KilnAgent(MetaAgent):
             for res, cost in resource_4roller.items():
                 self.resource_costs[res] = cost * self.model.random.uniform(0.98, 1.02)
 
+        self._refresh_workforce_cache()
+
+    def _refresh_workforce_cache(self):
+        self.brickmakers = list(self.constituting_agents_by_type.get(BrickMaker, []))
+        self.owner = self.constituting_agents_by_type[Owner][0]
+        job_counts = {}
+        for worker in self.agents:
+            if worker.job == "owner":
+                continue
+            job_counts[worker.job] = job_counts.get(worker.job, 0) + 1
+        self.job_counts = job_counts
+        self.resource_unit_cost = sum(self.resource_costs.values())
+
     def step(self):
         """
         Standard Mesa step method.
@@ -125,7 +138,7 @@ class KilnAgent(MetaAgent):
         #Get bricks
         new_bricks = 0
         if self.kiln_tech == "Hand-Made": 
-            for moulder in self.constituting_agents_by_type[BrickMaker]: 
+            for moulder in self.brickmakers:
                 moulder.step()
                 new_bricks+=moulder.bricks_made
         elif self.kiln_tech == "Two-Roller":
@@ -140,16 +153,10 @@ class KilnAgent(MetaAgent):
         self.bricks_made += new_bricks
 
         #Calculate resource costs
-        self.total_resources = new_bricks * sum(self.resource_costs.values())
+        self.total_resources = new_bricks * self.resource_unit_cost
         #Calculate labor costs
-        total_wages_to_pay = 0
-        job_counts = {}
-        for worker in self.agents:
-            job_counts[worker.job] = job_counts.get(worker.job, 0) + 1
-
         for worker in self.agents:
             if worker.job == "owner":
-                owner = worker
                 continue
             
             # Brickmakers get paid per brick
@@ -157,8 +164,8 @@ class KilnAgent(MetaAgent):
                 wage = self.wages[worker.job] * worker.bricks_made            
             else:
                 # Everyone else gets paid for their share, so a manager get paid for all the bricks while a loader gets paid per portion of
-                if job_counts[worker.job] > 0:
-                    wage = (self.wages[worker.job] * new_bricks) / job_counts[worker.job]
+                if self.job_counts[worker.job] > 0:
+                    wage = (self.wages[worker.job] * new_bricks) / self.job_counts[worker.job]
                 else:
                     wage = 0
             
@@ -189,4 +196,4 @@ class KilnAgent(MetaAgent):
        
         #Calculate worker wages --- per brick
         self.total_profit +=  round((self.revenue - self.total_resources- self.total_labor-self.fixed_costs),2)
-        self.constituting_agents_by_type[Owner][0].wealth += self.total_profit
+        self.owner.wealth += self.total_profit
